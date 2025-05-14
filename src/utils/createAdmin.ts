@@ -4,24 +4,38 @@ import { toast } from "@/components/ui/use-toast";
 
 export const createFirstAdmin = async (email: string, password: string): Promise<boolean> => {
   try {
+    console.log("Creating first admin account with email:", email);
+    
     // First register the user through Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: window.location.origin + '/admin/login'
+      }
     });
     
-    if (authError) throw authError;
+    if (authError) {
+      console.error("Auth error during admin creation:", authError);
+      throw authError;
+    }
+    
+    console.log("Auth signup successful, user created:", authData.user?.id);
     
     // Wait for the user to be created
     if (authData.user) {
       // Call the RPC function to make the user an admin
       const { data, error } = await supabase
         .rpc('create_first_admin', { 
-          admin_email: email, 
-          admin_password: password 
+          admin_email: email
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error("RPC error during admin creation:", error);
+        throw error;
+      }
+      
+      console.log("Admin role assigned successfully", data);
       
       toast({
         title: "Admin user created successfully",

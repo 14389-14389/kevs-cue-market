@@ -1,20 +1,19 @@
-
 import React, { createContext, useState, useContext } from 'react';
 
 // Define cart item type
 export interface CartItem {
-  id: string;
+  productId: string;
+  quantity: number;
   name: string;
   price: number;
-  quantity: number;
-  image?: string;
+  category: string;
 }
 
 // Define context type
 export interface CartContextType {
-  cart: CartItem[];
-  cartCount: number; // Add this property
-  cartTotal: number; // Add this property
+  items: CartItem[];
+  cartTotal: number;
+  cartCount: number;
   addToCart: (product: any, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -23,9 +22,9 @@ export interface CartContextType {
 
 // Create context with default values
 const CartContext = createContext<CartContextType>({
-  cart: [],
-  cartCount: 0,
+  items: [],
   cartTotal: 0,
+  cartCount: 0,
   addToCart: () => {},
   removeFromCart: () => {},
   updateQuantity: () => {},
@@ -35,31 +34,31 @@ const CartContext = createContext<CartContextType>({
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>([]);
 
   // Calculate cart count and total
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const cartCount = items.reduce((total, item) => total + item.quantity, 0);
+  const cartTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   // Add item to cart
   const addToCart = (product: any, quantity: number = 1) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.id === product.id);
+    setItems(prevItems => {
+      const existingItem = prevItems.find(item => item.productId === product.id);
       if (existingItem) {
         // If item exists, update quantity
-        return prevCart.map(item => 
-          item.id === product.id 
+        return prevItems.map(item => 
+          item.productId === product.id 
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
         // Add new item to cart
-        return [...prevCart, {
-          id: product.id,
+        return [...prevItems, {
+          productId: product.id,
           name: product.name,
           price: product.price,
           quantity: quantity,
-          image: product.image
+          category: product.category
         }];
       }
     });
@@ -67,7 +66,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Remove item from cart
   const removeFromCart = (productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+    setItems(prevItems => prevItems.filter(item => item.productId !== productId));
   };
 
   // Update item quantity
@@ -77,23 +76,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
-    setCart(prevCart => 
-      prevCart.map(item => 
-        item.id === productId ? { ...item, quantity } : item
+    setItems(prevItems => 
+      prevItems.map(item => 
+        item.productId === productId ? { ...item, quantity } : item
       )
     );
   };
 
   // Clear cart
   const clearCart = () => {
-    setCart([]);
+    setItems([]);
   };
 
   return (
     <CartContext.Provider value={{
-      cart,
-      cartCount,
+      items,
       cartTotal,
+      cartCount,
       addToCart,
       removeFromCart,
       updateQuantity,

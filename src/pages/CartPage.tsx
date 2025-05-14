@@ -38,8 +38,8 @@ const CartPage: React.FC = () => {
     const userDetails = {
       name: user.name,
       email: user.email,
-      phone: (user as any).phone || 'Not provided',
-      address: (user as any).address || 'Not provided'
+      phone: user.phone || 'Not provided',
+      address: user.address || 'Not provided'
     };
     
     sendOrderToWhatsApp(items, userDetails, cartTotal, deliveryFee);

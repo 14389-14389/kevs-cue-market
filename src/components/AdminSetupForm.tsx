@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { createFirstAdmin } from '@/utils/createAdmin';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from "@/components/ui/use-toast";
 
 const AdminSetupForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -22,22 +23,56 @@ const AdminSetupForm: React.FC = () => {
     
     // Check if passwords match
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      toast({
+        title: "Passwords do not match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsSubmitting(true);
     
-    // Create the admin user
-    const success = await createFirstAdmin(email, password);
-    
-    if (success) {
-      // Login as the newly created admin
-      await login(email, password, 'admin');
-      navigate('/admin/dashboard');
+    try {
+      // Create the admin user
+      const success = await createFirstAdmin(email, password);
+      
+      if (success) {
+        toast({
+          title: "Admin account created",
+          description: "Your admin account has been created successfully. You will be logged in automatically.",
+        });
+        
+        // Login as the newly created admin
+        const loginSuccess = await login(email, password, 'admin');
+        
+        if (loginSuccess) {
+          // Add a slight delay to ensure the auth context is updated
+          setTimeout(() => {
+            navigate('/admin/dashboard');
+          }, 500);
+        } else {
+          // If login fails, redirect to admin login page
+          toast({
+            title: "Login failed",
+            description: "Your account was created but automatic login failed. Please login manually.",
+          });
+          
+          setTimeout(() => {
+            navigate('/admin/login');
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error("Error during admin setup:", error);
+      toast({
+        title: "Setup failed",
+        description: "An error occurred during admin setup. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   return (
