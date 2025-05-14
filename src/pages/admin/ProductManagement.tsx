@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Plus, Pencil, Trash, Search } from 'lucide-react';
-import { useProducts, Product } from '@/contexts/ProductContext';
+import { useProducts } from '@/contexts/ProductContext';
+import { type Product } from '@/contexts/ProductContext';
 import { useToast } from '@/components/ui/use-toast';
 
 const ProductManagement: React.FC = () => {

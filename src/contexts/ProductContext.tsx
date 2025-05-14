@@ -1,7 +1,15 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
-import { Product } from './CartContext';
+// Export the Product interface so it can be used in other files
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  category: string;
+  description: string;
+  stock: number;
+}
 
 interface ProductContextType {
   products: Product[];

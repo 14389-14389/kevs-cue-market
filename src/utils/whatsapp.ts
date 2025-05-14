@@ -37,8 +37,8 @@ ${productsList}
 Thank you for your order!
 `;
 
-  // Format phone number (remove + if present)
-  const phone = '254743455893';
+  // Format phone number (ensure it's in the right format for WhatsApp)
+  const phone = '254743455893'; // Already formatted without the + symbol
   
   // Encode the message for URL
   const encodedMessage = encodeURIComponent(message);
