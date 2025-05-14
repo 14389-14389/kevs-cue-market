@@ -1,198 +1,193 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckIcon, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useProducts } from '@/contexts/ProductContext';
 import { useCart } from '@/contexts/CartContext';
+import { toast } from "@/components/ui/use-toast";
 
 const ProductsPage: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
   const { products } = useProducts();
   const { addToCart } = useCart();
   
-  // Get category from URL parameters
-  const queryParams = new URLSearchParams(location.search);
-  const categoryParam = queryParams.get('category');
+  // State for filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [sortOption, setSortOption] = useState('name-asc');
   
-  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [sortBy, setSortBy] = useState<string>('price-asc');
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  // Get unique categories
+  const categories = ['all', ...Array.from(new Set(products.map(product => product.category)))];
   
-  // Categories
-  const categories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'dresses', label: 'Dresses' },
-    { value: 'tops', label: 'Tops' },
-    { value: 'bottoms', label: 'Bottoms' },
-    { value: 'outerwear', label: 'Outerwear' },
-    { value: 'accessories', label: 'Accessories' },
-    { value: 'shoes', label: 'Shoes' },
-  ];
+  // Get min and max price
+  const minPrice = Math.min(...products.map(product => product.price), 0);
+  const maxPrice = Math.max(...products.map(product => product.price), 10000);
   
-  // Filter and sort products
+  // Set initial price range
   useEffect(() => {
-    let result = [...products];
-    
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      result = result.filter(product => product.category === selectedCategory);
+    if (products.length > 0) {
+      setPriceRange([minPrice, maxPrice]);
     }
+  }, [products, minPrice, maxPrice]);
+  
+  // Filter products
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          product.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+    const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
     
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(product => 
-        product.name.toLowerCase().includes(query) || 
-        product.description.toLowerCase().includes(query)
-      );
-    }
-    
-    // Sort products
-    switch (sortBy) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
+    return matchesSearch && matchesCategory && matchesPrice;
+  });
+  
+  // Sort products
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortOption) {
       case 'name-asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
+        return a.name.localeCompare(b.name);
       case 'name-desc':
-        result.sort((a, b) => b.name.localeCompare(a.name));
-        break;
+        return b.name.localeCompare(a.name);
+      case 'price-asc':
+        return a.price - b.price;
+      case 'price-desc':
+        return b.price - a.price;
+      default:
+        return 0;
     }
-    
-    setFilteredProducts(result);
-    
-    // Update URL with category parameter
-    const params = new URLSearchParams(location.search);
-    if (selectedCategory === 'all') {
-      params.delete('category');
-    } else {
-      params.set('category', selectedCategory);
-    }
-    navigate({ search: params.toString() }, { replace: true });
-  }, [products, selectedCategory, searchQuery, sortBy, location.search, navigate]);
+  });
   
-  const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value);
-  };
-  
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Search is already handled in the useEffect
+  // Handle add to cart
+  const handleAddToCart = (product: any) => {
+    addToCart(product, 1);
+    toast({
+      title: "Added to Cart",
+      description: `${product.name} has been added to your cart.`,
+    });
   };
   
   return (
-    <div className="py-8 animate-fade-in">
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-6">Our Products</h1>
-        
-        {/* Filters and Search */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div className="container mx-auto py-8 px-4 animate-fade-in">
+      <h1 className="text-3xl font-bold mb-6">Products</h1>
+      
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Filters</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Search Filter */}
           <div>
-            <Select onValueChange={handleCategoryChange} value={selectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Category" />
+            <Label htmlFor="search">Search</Label>
+            <Input
+              id="search"
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          
+          {/* Category Filter */}
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger id="category" className="mt-1">
+                <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           
-          <div>
-            <form onSubmit={handleSearch} className="relative">
-              <Input
-                type="search"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-10"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                variant="ghost"
-                className="absolute right-0 top-0 h-full"
-              >
-                <Search size={18} />
-              </Button>
-            </form>
-          </div>
-          
-          <div>
-            <Select onValueChange={setSortBy} value={sortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                <SelectItem value="name-asc">Name: A to Z</SelectItem>
-                <SelectItem value="name-desc">Name: Z to A</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Price Range Filter */}
+          <div className="col-span-1 md:col-span-2">
+            <Label>Price Range: KSh {priceRange[0]} - KSh {priceRange[1]}</Label>
+            <Slider
+              value={priceRange}
+              min={minPrice}
+              max={maxPrice}
+              step={100}
+              onValueChange={(value) => setPriceRange(value as [number, number])}
+              className="mt-3"
+            />
           </div>
         </div>
         
-        {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-lg text-gray-500">No products found.</p>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSelectedCategory('all');
-                setSearchQuery('');
-              }}
-              className="mt-4"
-            >
-              Clear filters
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <Card key={product.id} className="card-hover h-full">
-                <Link to={`/products/${product.id}`} className="block">
-                  <div className="aspect-square w-full bg-gray-100 relative">
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                      Product Image
-                    </div>
-                  </div>
-                </Link>
-                <CardContent className="p-4">
-                  <Link to={`/products/${product.id}`} className="block">
-                    <h3 className="font-semibold text-lg hover:text-primary">{product.name}</h3>
-                    <p className="text-sm text-gray-500 mb-2">
-                      {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
-                    </p>
-                    <p className="font-medium">KSh {product.price.toLocaleString()}</p>
-                  </Link>
-                  <Button 
-                    onClick={() => addToCart(product)}
-                    className="w-full mt-4 bg-boutique-burgundy"
-                  >
-                    Add to Cart
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        {/* Sort Options */}
+        <div className="mt-4">
+          <Label htmlFor="sort">Sort By</Label>
+          <Select value={sortOption} onValueChange={setSortOption}>
+            <SelectTrigger id="sort" className="w-full md:w-[200px] mt-1">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+              <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+              <SelectItem value="price-asc">Price (Low to High)</SelectItem>
+              <SelectItem value="price-desc">Price (High to Low)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+      
+      {/* Product Grid */}
+      {sortedProducts.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {sortedProducts.map(product => (
+            <Card key={product.id} className="overflow-hidden flex flex-col h-full">
+              <Link to={`/products/${product.id}`} className="group">
+                <div className="aspect-square overflow-hidden bg-gray-100">
+                  <img 
+                    src={product.image || "/placeholder.svg"} 
+                    alt={product.name}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                  />
+                </div>
+              </Link>
+              <CardContent className="p-4 flex-grow flex flex-col">
+                <Link 
+                  to={`/products/${product.id}`}
+                  className="text-lg font-medium hover:text-primary transition-colors"
+                >
+                  {product.name}
+                </Link>
+                <p className="text-muted-foreground text-sm mt-1">{product.category}</p>
+                <div className="flex items-center justify-between mt-4 pt-2 border-t">
+                  <p className="font-semibold">KSh {product.price.toLocaleString()}</p>
+                  <Button 
+                    onClick={() => handleAddToCart(product)}
+                    variant="outline" 
+                    size="sm"
+                    disabled={product.stock <= 0}
+                  >
+                    {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <h3 className="text-xl font-medium text-gray-600">No products found</h3>
+          <p className="text-gray-500 mt-2">Try adjusting your filters or search term</p>
+        </div>
+      )}
     </div>
   );
 };
