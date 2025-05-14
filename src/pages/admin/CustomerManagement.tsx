@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from "@/integrations/supabase/client";
+import { format } from 'date-fns';
 
 interface Customer {
   id: string;
@@ -12,74 +14,90 @@ interface Customer {
   email: string;
   phone: string;
   address: string;
-  createdAt: string;
+  created_at: string;
 }
 
-// Mock customer data
-const mockCustomers: Customer[] = [
-  {
-    id: 'c1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+2541234567',
-    address: '123 Nairobi St, Kenya',
-    createdAt: '2025-05-01'
-  },
-  {
-    id: 'c2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    phone: '+2547891234',
-    address: '456 Mombasa Rd, Kenya',
-    createdAt: '2025-05-03'
-  },
-  {
-    id: 'c3',
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    phone: '+2543214567',
-    address: '789 Kisumu Ave, Kenya',
-    createdAt: '2025-05-05'
-  },
-  {
-    id: 'c4',
-    name: 'Robert Brown',
-    email: 'robert@example.com',
-    phone: '+2549876543',
-    address: '101 Nakuru St, Kenya',
-    createdAt: '2025-05-08'
-  },
-  {
-    id: 'c5',
-    name: 'Emily Davis',
-    email: 'emily@example.com',
-    phone: '+2545678901',
-    address: '202 Eldoret Rd, Kenya',
-    createdAt: '2025-05-10'
-  }
-];
-
 const CustomerManagement: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
+  
+  // Fetch customers from Supabase
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setLoading(true);
+        
+        const { data, error } = await supabase
+          .from('users')
+          .select('*');
+          
+        if (error) throw error;
+        
+        setCustomers(data as Customer[]);
+      } catch (err: any) {
+        console.error('Error fetching customers:', err);
+        toast({
+          title: "Failed to load customers",
+          description: err.message || "An error occurred while loading customer data.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCustomers();
+  }, [toast]);
   
   // Filter customers based on search query
   const filteredCustomers = customers.filter(
     customer => 
-      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.phone.includes(searchQuery)
+      customer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.phone?.includes(searchQuery)
   );
   
   // Delete customer
-  const handleDelete = (customerId: string) => {
+  const handleDelete = async (customerId: string) => {
     if (confirm("Are you sure you want to delete this customer?")) {
-      setCustomers(customers.filter(customer => customer.id !== customerId));
-      toast({
-        title: "Customer Deleted",
-        description: "The customer account has been deleted successfully.",
-      });
+      try {
+        // Get the auth user_id for this customer
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('user_id')
+          .eq('id', customerId)
+          .single();
+          
+        if (userError) throw userError;
+        
+        if (!userData || !userData.user_id) {
+          throw new Error("Could not find user to delete");
+        }
+        
+        // Delete the auth user (this will cascade to delete the profile due to our foreign key)
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(
+          userData.user_id
+        );
+        
+        if (deleteError) throw deleteError;
+        
+        // Update local state
+        setCustomers(customers.filter(customer => customer.id !== customerId));
+        
+        toast({
+          title: "Customer Deleted",
+          description: "The customer account has been deleted successfully.",
+        });
+      } catch (err: any) {
+        console.error('Error deleting customer:', err);
+        toast({
+          title: "Failed to delete customer",
+          description: err.message || "An error occurred while deleting the customer.",
+          variant: "destructive"
+        });
+      }
     }
   };
   
@@ -115,7 +133,15 @@ const CustomerManagement: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCustomers.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-6">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-boutique-burgundy"></div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredCustomers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-6">
                   {searchQuery ? "No matching customers found." : "No customers available."}
@@ -126,9 +152,13 @@ const CustomerManagement: React.FC = () => {
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">{customer.name}</TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
-                  <TableCell className="truncate max-w-xs">{customer.address}</TableCell>
-                  <TableCell>{customer.createdAt}</TableCell>
+                  <TableCell>{customer.phone || 'Not provided'}</TableCell>
+                  <TableCell className="truncate max-w-xs">{customer.address || 'Not provided'}</TableCell>
+                  <TableCell>{
+                    customer.created_at ? 
+                      format(new Date(customer.created_at), 'yyyy-MM-dd') : 
+                      'Unknown'
+                  }</TableCell>
                   <TableCell className="text-right">
                     <Button 
                       variant="outline" 
