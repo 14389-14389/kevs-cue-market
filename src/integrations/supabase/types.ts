@@ -198,7 +198,7 @@ export type Database = {
     }
     Functions: {
       create_first_admin: {
-        Args: { admin_email: string; admin_password: string }
+        Args: { admin_email: string }
         Returns: string
       }
       is_admin: {

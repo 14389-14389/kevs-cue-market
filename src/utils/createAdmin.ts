@@ -24,10 +24,10 @@ export const createFirstAdmin = async (email: string, password: string): Promise
     
     // Wait for the user to be created
     if (authData.user) {
-      // Call the RPC function to make the user an admin
+      // Call the RPC function to make the user an admin - updated to match our new function
       const { data, error } = await supabase
         .rpc('create_first_admin', { 
-          admin_email: email
+          admin_email: email 
         });
         
       if (error) {

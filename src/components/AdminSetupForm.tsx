@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { createFirstAdmin } from '@/utils/createAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminSetupForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -40,27 +41,31 @@ const AdminSetupForm: React.FC = () => {
       if (success) {
         toast({
           title: "Admin account created",
-          description: "Your admin account has been created successfully. You will be logged in automatically.",
+          description: "Your admin account has been created successfully. Please wait while we log you in...",
         });
+        
+        // Small delay to ensure the user is created in the database
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Login as the newly created admin
         const loginSuccess = await login(email, password, 'admin');
         
         if (loginSuccess) {
-          // Add a slight delay to ensure the auth context is updated
-          setTimeout(() => {
-            navigate('/admin/dashboard');
-          }, 500);
+          toast({
+            title: "Login successful",
+            description: "You are now logged in as an admin.",
+          });
+          
+          // Navigate to the admin dashboard
+          navigate('/admin/dashboard');
         } else {
           // If login fails, redirect to admin login page
           toast({
-            title: "Login failed",
+            title: "Automatic login failed",
             description: "Your account was created but automatic login failed. Please login manually.",
           });
           
-          setTimeout(() => {
-            navigate('/admin/login');
-          }, 1000);
+          navigate('/admin/login');
         }
       }
     } catch (error) {

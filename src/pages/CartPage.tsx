@@ -77,7 +77,7 @@ const CartPage: React.FC = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {items.map((item) => (
-                    <div key={item.product.id} className="flex flex-col sm:flex-row border-b pb-4 last:border-0 last:pb-0">
+                    <div key={item.productId} className="flex flex-col sm:flex-row border-b pb-4 last:border-0 last:pb-0">
                       {/* Product Image */}
                       <div className="sm:w-24 h-24 bg-gray-100 flex-shrink-0 mb-4 sm:mb-0 flex items-center justify-center text-gray-400">
                         Product
@@ -87,10 +87,10 @@ const CartPage: React.FC = () => {
                       <div className="flex-grow sm:ml-4">
                         <div className="flex justify-between">
                           <div>
-                            <h3 className="font-semibold">{item.product.name}</h3>
-                            <p className="text-sm text-gray-500">{item.product.category}</p>
+                            <h3 className="font-semibold">{item.name}</h3>
+                            <p className="text-sm text-gray-500">{item.category}</p>
                           </div>
-                          <p className="font-medium">KSh {item.product.price.toLocaleString()}</p>
+                          <p className="font-medium">KSh {item.price.toLocaleString()}</p>
                         </div>
                         
                         <div className="flex justify-between items-center mt-4">
@@ -98,7 +98,7 @@ const CartPage: React.FC = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleQuantityChange(item.product.id, -1, item.quantity)}
+                              onClick={() => handleQuantityChange(item.productId, -1, item.quantity)}
                             >
                               <Minus size={14} />
                             </Button>
@@ -106,8 +106,8 @@ const CartPage: React.FC = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleQuantityChange(item.product.id, 1, item.quantity)}
-                              disabled={item.quantity >= item.product.stock}
+                              onClick={() => handleQuantityChange(item.productId, 1, item.quantity)}
+                              disabled={item.quantity >= item.stock}
                             >
                               <Plus size={14} />
                             </Button>
@@ -116,7 +116,7 @@ const CartPage: React.FC = () => {
                             variant="ghost" 
                             size="sm"
                             className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removeFromCart(item.product.id)}
+                            onClick={() => removeFromCart(item.productId)}
                           >
                             <Trash size={16} />
                           </Button>
